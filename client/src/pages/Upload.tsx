@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, UploadCloud, ShieldCheck, MapPin, AlertTriangle, CheckCircle } from "lucide-react";
+import { Loader2, Camera, ShieldCheck, MapPin, AlertTriangle, CheckCircle, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Upload() {
@@ -31,8 +31,6 @@ export default function Upload() {
       reader.onloadend = async () => {
         const base64 = reader.result as string;
         setPreview(base64);
-        
-        // Trigger privacy check immediately
         const result = await privacyCheckMutation.mutateAsync(base64);
         setPrivacyResult(result);
       };
@@ -40,21 +38,19 @@ export default function Upload() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!file || !preview) return;
 
     await createTaskMutation.mutateAsync({
-      imageUrl: "pending_upload", // Backend handles image storage logic for MVP
-      imageBase64: preview, // Sending base64 for simplicity in prototype
-      lat: 40.7128 + (Math.random() - 0.5) * 0.1, // Simulated GPS
+      imageUrl: "pending_upload",
+      imageBase64: preview,
+      lat: 40.7128 + (Math.random() - 0.5) * 0.1,
       lng: -74.0060 + (Math.random() - 0.5) * 0.1,
-      location: locationName || "Unknown Location",
+      location: locationName || "Current Location",
       reportedPriority: priority[0],
       privacyData: privacyResult,
     });
     
-    // Reset form
     setFile(null);
     setPreview(null);
     setPrivacyResult(null);
@@ -65,177 +61,116 @@ export default function Upload() {
   const isScanning = privacyCheckMutation.isPending;
 
   return (
-    <div className="min-h-screen bg-secondary/30 py-12 px-4">
-      <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {/* Left Col: Upload & Preview */}
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-display font-bold">Report Waste</h1>
-            <p className="text-muted-foreground">Upload a photo. Our AI will anonymize it automatically.</p>
-          </div>
+    <div className="space-y-6">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-display font-bold">New Report</h1>
+        <p className="text-xs text-muted-foreground">Your photo is automatically anonymized by AI.</p>
+      </header>
 
-          <Card className="overflow-hidden border-2 border-dashed border-border hover:border-primary/50 transition-colors">
-            <CardContent className="p-0">
-              {!preview ? (
-                <div 
-                  className="h-96 flex flex-col items-center justify-center cursor-pointer bg-white hover:bg-muted/50 transition-colors"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <div className="bg-primary/10 p-4 rounded-full mb-4">
-                    <UploadCloud className="w-8 h-8 text-primary" />
-                  </div>
-                  <p className="font-medium text-lg">Click to Upload Photo</p>
-                  <p className="text-sm text-muted-foreground mt-1">JPG, PNG up to 10MB</p>
-                  <input 
-                    ref={fileInputRef} 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
-                    onChange={handleFileChange} 
-                  />
-                </div>
-              ) : (
-                <div className="relative h-96 bg-black group">
-                  <img src={preview} alt="Preview" className="w-full h-full object-contain" />
-                  
-                  {/* Privacy Scanning Overlay */}
-                  <AnimatePresence>
-                    {isScanning && (
-                      <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center z-10"
-                      >
-                        <div className="relative w-full h-1 bg-white/20 mb-8 overflow-hidden">
-                          <div className="absolute top-0 left-0 h-full w-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] scan-line" />
-                        </div>
-                        <div className="bg-background/90 backdrop-blur px-6 py-3 rounded-full flex items-center space-x-3 shadow-xl">
-                          <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                          <span className="font-mono font-bold">YOLOv8 SCANNING...</span>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Privacy Results Overlay */}
-                  {!isScanning && privacyResult && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="absolute bottom-4 left-4 right-4 flex justify-between items-end"
-                    >
-                      <div className="bg-white/90 backdrop-blur border border-white/20 p-4 rounded-xl shadow-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          {privacyResult.detected ? (
-                            <ShieldCheck className="w-5 h-5 text-green-600" />
-                          ) : (
-                            <CheckCircle className="w-5 h-5 text-green-600" />
-                          )}
-                          <span className="font-bold">Privacy Check Complete</span>
-                        </div>
-                        <div className="text-xs space-y-1 text-muted-foreground">
-                          <p>Faces Detected: {privacyResult.risks.filter(r => r.type === 'face').length}</p>
-                          <p>Plates Detected: {privacyResult.risks.filter(r => r.type === 'plate').length}</p>
-                          <p className="text-green-600 font-bold mt-1">Anonymization Applied</p>
-                        </div>
+      <div className="space-y-6 pb-12">
+        <div className="relative aspect-square w-full rounded-3xl overflow-hidden bg-white border-2 border-dashed border-border flex items-center justify-center">
+          {!preview ? (
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="flex flex-col items-center gap-4 active:scale-95 transition-transform"
+            >
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <Camera size={32} />
+              </div>
+              <span className="font-bold text-sm">Take or Upload Photo</span>
+              <input 
+                ref={fileInputRef} 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={handleFileChange} 
+              />
+            </button>
+          ) : (
+            <>
+              <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+              <button 
+                onClick={() => { setFile(null); setPreview(null); }}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-md"
+              >
+                <X size={16} />
+              </button>
+              
+              <AnimatePresence>
+                {isScanning && (
+                  <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-20"
+                  >
+                    <div className="w-full max-w-[80%] space-y-4 text-center">
+                      <div className="relative h-1 bg-white/20 overflow-hidden rounded-full">
+                        <div className="absolute top-0 left-0 h-full w-full bg-red-500 scan-line" />
                       </div>
-                      
-                      <Button 
-                        variant="secondary" 
-                        size="sm"
-                        onClick={() => { setFile(null); setPreview(null); }}
-                      >
-                        Change Photo
-                      </Button>
-                    </motion.div>
-                  )}
-                  
-                  {/* Simulated Bounding Boxes */}
-                  {!isScanning && privacyResult && privacyResult.risks.map((risk, i) => (
-                    <div 
-                      key={i}
-                      className="absolute border-2 border-red-500 bg-red-500/20"
-                      style={{
-                        left: `${risk.box[0]}%`,
-                        top: `${risk.box[1]}%`,
-                        width: `${risk.box[2]}%`,
-                        height: `${risk.box[3]}%`
-                      }}
-                    />
-                  ))}
+                      <p className="font-mono text-[10px] font-bold text-white tracking-widest">YOLOv8 PRIVACY SCANNING...</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {!isScanning && privacyResult && (
+                <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-white/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <ShieldCheck className="w-4 h-4 text-green-600" />
+                    <span className="text-xs font-bold">Privacy Check Secure</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {privacyResult.risks.length} sensitive objects detected and redacted.
+                  </p>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </>
+          )}
         </div>
 
-        {/* Right Col: Metadata Form */}
-        <div className="space-y-6 flex flex-col justify-center">
-          <Card className="border-none shadow-xl">
-            <CardContent className="p-8 space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="location">Location Description</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    id="location" 
-                    placeholder="e.g., Corner of 5th and Main, near park entrance" 
-                    className="pl-10"
-                    value={locationName}
-                    onChange={(e) => setLocationName(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <Label>Severity Level</Label>
-                  <span className={`px-2 py-1 rounded text-xs font-bold ${
-                    priority[0] >= 4 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                  }`}>
-                    Level {priority[0]}
-                  </span>
-                </div>
-                <Slider 
-                  value={priority} 
-                  onValueChange={setPriority} 
-                  max={5} 
-                  min={1} 
-                  step={1} 
-                  className="py-4"
+        {preview && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="space-y-3">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Location</Label>
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+                <Input 
+                  placeholder="Where is the waste located?" 
+                  className="pl-12 h-14 rounded-2xl bg-white border-border"
+                  value={locationName}
+                  onChange={(e) => setLocationName(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">
-                  1 = Small litter, 5 = Hazardous/Large dump
-                </p>
               </div>
+            </div>
 
-              <div className="bg-muted/50 p-4 rounded-lg flex items-start space-x-3">
-                <AlertTriangle className="w-5 h-5 text-accent mt-0.5" />
-                <div className="text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground">Community Guideline</p>
-                  False reporting may lead to account strikes. Please ensure the photo clearly shows the waste.
-                </div>
+            <div className="space-y-4 bg-white p-5 rounded-3xl border border-border shadow-sm">
+              <div className="flex justify-between items-center">
+                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Severity</Label>
+                <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+                  priority[0] >= 4 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                }`}>
+                  Level {priority[0]}
+                </span>
               </div>
+              <Slider 
+                value={priority} 
+                onValueChange={setPriority} 
+                max={5} min={1} step={1} 
+              />
+            </div>
 
-              <Button 
-                onClick={handleSubmit} 
-                className="w-full text-lg h-12" 
-                disabled={!file || isScanning || createTaskMutation.isPending}
-              >
-                {createTaskMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Report"
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            <Button 
+              onClick={handleSubmit} 
+              className="w-full h-16 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20" 
+              disabled={!file || isScanning || createTaskMutation.isPending}
+            >
+              {createTaskMutation.isPending ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                "Submit Report"
+              )}
+            </Button>
+          </motion.div>
+        )}
       </div>
     </div>
   );
